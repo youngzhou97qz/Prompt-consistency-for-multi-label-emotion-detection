@@ -227,3 +227,247 @@ model_1 = PCD_model().to(device)
 valid_list = train_set[:6720]
 train_list = train_set[6720:]
 run(model_1, train_list, valid_list, batch_size=BATCH, learning_rate=LR, epochs=EPOCHS, name='XX')
+
+model_2 = PCD_model().to(device)
+valid_list = train_set[6720:13440]
+train_list = train_set[:6720] + train_set[13440:]
+run(model_2, train_list, valid_list, batch_size=BATCH, learning_rate=LR, epochs=EPOCHS, name='XX')
+
+model_3 = PCD_model().to(device)
+valid_list = train_set[13440:20160]
+train_list = train_set[:13440] + train_set[20160:]
+run(model_3, train_list, valid_list, batch_size=BATCH, learning_rate=LR, epochs=EPOCHS, name='XX')
+
+model_4 = PCD_model().to(device)
+valid_list = train_set[20160:26880]
+train_list = train_set[:20160] + train_set[26880:]
+run(model_4, train_list, valid_list, batch_size=BATCH, learning_rate=LR, epochs=EPOCHS, name='XX')
+
+# evaluation
+def prompting(text, label):
+    prom_0 = ['喜爱吗？[MASK]。','忧愁吗？[MASK]。','伤心吗？[MASK]。','喜悦吗？[MASK]。','期盼吗？[MASK]。','怨恨吗？[MASK]。',\
+            '愤怒吗？[MASK]。','惊讶吗？[MASK]。','中立吗？[MASK]。']  # 喜爱 忧愁 伤心 喜悦 期盼 怨恨 愤怒 惊讶
+    prom_1 = ['喜欢吗？[MASK]。','焦虑吗？[MASK]。','悲伤吗？[MASK]。','高兴吗？[MASK]。','期待吗？[MASK]。','讨厌吗？[MASK]。',\
+            '生气吗？[MASK]。','吃惊吗？[MASK]。','中性吗？[MASK]。']  # 喜爱 忧愁 伤心 喜悦 期盼 怨恨 愤怒 惊讶
+    mask = [0,0,0,0,0,0,0,0,0]
+    for i in range(9):
+        if label[i] == '1':
+            mask[i] = 1  # 对2190 不679 是3221 否1415
+    rand = list(range(9))
+    text_0 = ''.join(prom_0) + text
+    text_1 = ''.join(prom_1) + text
+    return text_0, text_1, mask, rand
+
+def data_loader(data_set, batch_size):
+    count = 0
+    while count < len(data_set):
+        batch = []
+        size = min(batch_size, len(data_set) - count)
+        for _ in range(size):
+            text_0, text_1, mask, rand = prompting(data_set[count][0], data_set[count][1])
+            batch.append((text_0, mask, rand))
+            batch.append((text_1, mask, rand))
+            count += 1
+        yield batch
+
+def outputs():
+    pred_1, pred_2, pred_3, pred_4, label_1 = [], [], [], [], []
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(train_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_1.append(logits_mlm)
+            label_1.append(torch.tensor(mask[::2]))
+    pred_1 = torch.cat(pred_1, dim=0)
+    label_1 = torch.cat(label_1, dim=0)
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(train_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_2.append(logits_mlm)
+    pred_2 = torch.cat(pred_2, dim=0)
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(train_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_3.append(logits_mlm)
+    pred_3 = torch.cat(pred_3, dim=0)
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(train_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_4.append(logits_mlm)
+    pred_4 = torch.cat(pred_4, dim=0)
+
+    return pred_1+pred_2+pred_3+pred_4, label_1
+
+import math
+from sklearn.metrics import f1_score, accuracy_score, recall_score, precision_score, coverage_error, label_ranking_loss, label_ranking_average_precision_score
+
+def sigmoids(x, t):
+    return 1/(1 + math.exp(-x+t))
+
+def test(pred, label):
+    zero = torch.zeros_like(pred)
+    one = torch.ones_like(pred)
+
+    label_all = []
+    for j in range(label.shape[0]):
+        label_all.append(label[j][:8].int().tolist())
+
+    temp_max = -99.0
+    for temp in tqdm(range(140)):
+        th = float(temp) / 10.0 - 10.0
+        sigm_all, bina_all = [], []
+        bina = torch.where(pred > (th), one, zero)
+
+        for j in range(pred.shape[0]):
+            sigm_all.append([sigmoids(pred[j][0], th), sigmoids(pred[j][1], th), sigmoids(pred[j][2], th), sigmoids(pred[j][3], th),\
+                             sigmoids(pred[j][4], th), sigmoids(pred[j][5], th), sigmoids(pred[j][6], th), sigmoids(pred[j][7], th)])
+            temp_bina = [0,0,0,0,0,0,0,0]
+            temp_bina[0] = int(bina[j][0])
+            temp_bina[1] = int(bina[j][1])
+            temp_bina[2] = int(bina[j][2])
+            temp_bina[3] = int(bina[j][3])
+            temp_bina[4] = int(bina[j][4])
+            temp_bina[5] = int(bina[j][5])
+            temp_bina[6] = int(bina[j][6])
+            temp_bina[7] = int(bina[j][7])
+            bina_all.append(temp_bina)
+
+        f1 = f1_score(label_all, bina_all, average='micro')/0.65+f1_score(label_all, bina_all, average='macro')/0.53
+        ap = label_ranking_average_precision_score(label_all, sigm_all)/0.81
+        ce = coverage_error(label_all, sigm_all)/1.91
+        rl = label_ranking_loss(label_all, sigm_all)/0.09
+        if f1+ap-ce-rl > temp_max:
+            temp_max = f1+ap-ce-rl
+            print(th, temp_max)
+    return 0
+
+def outputs():
+    pred_1, pred_2, pred_3, pred_4, label_1 = [], [], [], [], []
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(test_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_1.append(logits_mlm)
+            label_1.append(torch.tensor(mask[::2]))
+    pred_1 = torch.cat(pred_1, dim=0)
+    label_1 = torch.cat(label_1, dim=0)
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(test_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_2.append(logits_mlm)
+    pred_2 = torch.cat(pred_2, dim=0)
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(test_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_3.append(logits_mlm)
+    pred_3 = torch.cat(pred_3, dim=0)
+    
+    model_1 = PCD_model().to(device)
+    model_1.load_state_dict(torch.load(log_dir + 'XX.pt'))
+    model_1.eval()
+    with torch.no_grad():
+        test_iterator = data_loader(test_set, batch_size=BATCH)
+        for _, batch in tqdm(enumerate(test_iterator)):
+            text, mask, rand = zip(*batch)
+            token = tokenizer(list(text), padding=True, max_length=MAX_LEN, truncation=True, return_tensors="pt").to(device)
+            logits_mlm = (model_1(**token)).detach().cpu()
+            logits_mlm = logits_mlm[::2] + logits_mlm[1::2]
+            pred_4.append(logits_mlm)
+    pred_4 = torch.cat(pred_4, dim=0)
+
+    return pred_1+pred_2+pred_3+pred_4, label_1
+
+pred, label = outputs()
+
+def test(pred, label):
+    zero = torch.zeros_like(pred)
+    one = torch.ones_like(pred)
+
+    label_all = []
+    for j in range(label.shape[0]):
+        label_all.append(label[j][:8].int().tolist())
+
+    th = XX
+    sigm_all, bina_all = [], []
+    bina = torch.where(pred > (th), one, zero)
+
+    for j in range(pred.shape[0]):
+        sigm_all.append([sigmoids(pred[j][0], th), sigmoids(pred[j][1], th), sigmoids(pred[j][2], th), sigmoids(pred[j][3], th),\
+                         sigmoids(pred[j][4], th), sigmoids(pred[j][5], th), sigmoids(pred[j][6], th), sigmoids(pred[j][7], th)])
+        temp_bina = [0,0,0,0,0,0,0,0]
+        temp_bina[0] = int(bina[j][0])
+        temp_bina[1] = int(bina[j][1])
+        temp_bina[2] = int(bina[j][2])
+        temp_bina[3] = int(bina[j][3])
+        temp_bina[4] = int(bina[j][4])
+        temp_bina[5] = int(bina[j][5])
+        temp_bina[6] = int(bina[j][6])
+        temp_bina[7] = int(bina[j][7])
+        bina_all.append(temp_bina)
+
+    print('micro_precision: ', precision_score(label_all, bina_all, average='micro'))
+    print('micro_recall: ', recall_score(label_all, bina_all, average='micro'))
+    print('micro_f1: ', f1_score(label_all, bina_all, average='micro'))
+    print('macro_precision: ', precision_score(label_all, bina_all, average='macro'))
+    print('macro_recall: ', recall_score(label_all, bina_all, average='macro'))
+    print('macro_f1: ', f1_score(label_all, bina_all, average='macro'))
+    print('ap: ', label_ranking_average_precision_score(label_all, sigm_all))
+    print('ce: ', coverage_error(label_all, sigm_all))
+    print('rl: ', label_ranking_loss(label_all, sigm_all))
+    return 0
+
+test(pred, label)
